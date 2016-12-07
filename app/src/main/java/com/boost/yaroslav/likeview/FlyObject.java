@@ -1,6 +1,7 @@
 package com.boost.yaroslav.likeview;
 
 import android.graphics.Matrix;
+import android.graphics.PointF;
 
 /**
  * Created by yaroslav on 06.12.16.
@@ -8,30 +9,23 @@ import android.graphics.Matrix;
 
 public class FlyObject {
     private static final String TAG = "FlyObject";
-    private long timeToDeath;
+    private final float timeToDeath = 0;
     private int id;
-    private long aliveTime;
+    private float aliveTime;
     private Matrix stateMatrix;
+    private PointF likeSize;
+    boolean isFlying;
 
-    public FlyObject(long timeToDeath, int id) {
-        this.timeToDeath = timeToDeath;
+    public FlyObject(int id) {
         this.id = id;
         stateMatrix = new Matrix();
+        likeSize = new PointF(50,50);
     }
 
-    private void increaseTime(long time){
-        aliveTime += time;
-    }
-
-    public void changeState(){
-        changeState(5);
-
-    }
-
-    public void changeState(long rate){
-        increaseTime(rate);
+    public void changeState(float x, float y){
+        aliveTime = y;
         stateMatrix.reset();
-        stateMatrix.setTranslate(0, aliveTime);
+        stateMatrix.setTranslate(x, y);
     }
 
     Matrix getState(){
@@ -43,7 +37,15 @@ public class FlyObject {
     }
 
     public boolean isAlive() {
-        return aliveTime < timeToDeath;
+        return aliveTime > timeToDeath;
     }
 
+
+    public void setLikeSize(PointF likeSize) {
+        this.likeSize = likeSize;
+    }
+
+    public PointF getLikeSize() {
+        return likeSize;
+    }
 }
