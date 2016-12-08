@@ -7,6 +7,7 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.PixelFormat;
+import android.graphics.PointF;
 import android.graphics.PorterDuff;
 import android.os.Looper;
 import android.util.AttributeSet;
@@ -26,6 +27,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class LikesSurfaceView extends SurfaceView implements SurfaceHolder.Callback {
     private static final String TAG = "LikesSurfaceView";
+    private static final long DELAY_NEXT_FRAME = 16;
     ConcurrentLinkedQueue<FlyObject> mFlyObjects = new ConcurrentLinkedQueue<>();
     Map<Integer, Bitmap> mLikesBitmapsMap = new LinkedHashMap<>();
     ConcurrentHashMap<Integer, Integer> mUniqueResourcesCounter = new ConcurrentHashMap<>();
@@ -106,7 +108,7 @@ public class LikesSurfaceView extends SurfaceView implements SurfaceHolder.Callb
 
     private Bitmap createImageFromResId(int resId) {
         Bitmap bitmap = BitmapFactory.decodeResource(getResources(), resId);
-        return bitmap;
+        return AnimationManager.resizeBitmap(bitmap, new PointF(100, 100), true);
     }
 
     class DrawThread extends Thread {
@@ -138,9 +140,9 @@ public class LikesSurfaceView extends SurfaceView implements SurfaceHolder.Callb
                 canvas = null;
                 timeNow = System.currentTimeMillis();
                 timeDelta = timeNow - timePrevFrame;
-                if (timeDelta < 30){
+                if (timeDelta < DELAY_NEXT_FRAME){
                     try {
-                        Thread.sleep(30 - timeDelta);
+                        Thread.sleep(DELAY_NEXT_FRAME - timeDelta);
                     } catch (InterruptedException e){
                         Log.e(TAG, e.getMessage());
                     }
@@ -177,10 +179,10 @@ public class LikesSurfaceView extends SurfaceView implements SurfaceHolder.Callb
         private void drawFlyingLike(final Canvas canvas, final FlyObject flyObject) {
             Bitmap bitmap = mLikesBitmapsMap.get(flyObject.getId());
             if (!flyObject.isFlying) {
-                bitmap = AnimationManager.resizeBitmap(bitmap, flyObject.getLikeSize());
+                bitmap = AnimationManager.resizeBitmap(bitmap, flyObject.getLikeSize(), false);
             }
-            canvas.drawBitmap(bitmap, flyObject.getState(), mLikePaint);
-            Log.d(TAG, "drawFlyingLike: " + mLikesBitmapsMap.size());
+            mLikePaint.setAlpha(flyObject.getAlpha());
+            canvas.drawBitmap(bitmap, flyObject.getPosition().x, flyObject.getPosition().y, mLikePaint);
         }
 
         private void clearCachedLikes(Iterator iterator, FlyObject flyObject) {

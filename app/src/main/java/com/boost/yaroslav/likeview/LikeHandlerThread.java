@@ -22,7 +22,6 @@ public class LikeHandlerThread extends Handler {
     }
 
     public void LikeIsPressed() {
-        Log.d(TAG, "LikeIsPressed: ");
         sendMessage(obtainMessage(MSG_LIKE_PRESSED));
     }
 
@@ -35,7 +34,6 @@ public class LikeHandlerThread extends Handler {
     @Override
     public void handleMessage(Message msg) {
         int what = msg.what;
-        Log.d(TAG, "handleMessage: "+what);
         LikesSurfaceView.DrawThread drawThread = mWeakThread.get();
         if (drawThread == null) {
             Log.w(TAG, "ThreadHandler.handleMessage: weak ref is null");

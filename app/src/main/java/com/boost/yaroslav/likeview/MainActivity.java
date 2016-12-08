@@ -21,11 +21,11 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View view) {
                 Log.d(TAG, "onClick: ");
                 if (++counter % 2 == 0){
-                    likesSurfaceView.onLikeAdded(R.drawable.ic_launcher);
+                    likesSurfaceView.onLikeAdded(R.drawable.a);
                 } else if (counter % 3 == 0){
-                    likesSurfaceView.onLikeAdded(R.drawable.home);
+                    likesSurfaceView.onLikeAdded(R.drawable.b);
                 } else {
-                    likesSurfaceView.onLikeAdded(R.drawable.phone);
+                    likesSurfaceView.onLikeAdded(R.drawable.c);
                 }
             }
         });

@@ -1,19 +1,14 @@
 package com.boost.yaroslav.likeview;
 
-import android.animation.Animator;
 import android.animation.AnimatorSet;
+import android.animation.IntEvaluator;
 import android.animation.ObjectAnimator;
-import android.animation.PointFEvaluator;
 import android.animation.ValueAnimator;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.graphics.Matrix;
 import android.graphics.PointF;
 import android.util.Log;
+import android.view.animation.LinearInterpolator;
 
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Random;
 
 /**
@@ -22,10 +17,10 @@ import java.util.Random;
 
 public class AnimationManager {
     private static final String TAG = "AnimationManager";
+    private static final int BOTTOM_OFFSET = 50;
     private Random mRandom;
-    private List<FlyObject> mFlyObjectsList = new LinkedList<>();
-    private int mWidth = 300;
-    private int mHeight = 500;
+    private int mWidth;
+    private int mHeight;
 
     public AnimationManager() {
         mRandom = new Random();
@@ -37,11 +32,13 @@ public class AnimationManager {
     }
 
     private void createAnimation(FlyObject flyObject){
-        AnimatorSet animatorSet = new AnimatorSet();
+        ValueAnimator appearanceAnimator = setScaleAnimator(flyObject);
         ValueAnimator flyAnimator = setFlyAnimator(flyObject);
+        ObjectAnimator alphaAnimator = setAlphaAnimator(flyObject);
 
-        animatorSet.play(flyAnimator)
-                .after(setStartAnimator(flyObject));
+        AnimatorSet animatorSet = new AnimatorSet();
+        animatorSet.playTogether(flyAnimator, appearanceAnimator);
+        animatorSet.playSequentially(alphaAnimator);
         animatorSet.start();
     }
 
@@ -50,70 +47,53 @@ public class AnimationManager {
 
         ValueAnimator animator = ValueAnimator.ofObject(
                 evaluator,
-                new PointF(mWidth / 2, mHeight - 100),
+                new PointF(mWidth / 2, mHeight - BOTTOM_OFFSET),
                 new PointF(mRandom.nextInt(mWidth), 0)
         );
         animator.addUpdateListener(new FlyListener(flyObject));
-        animator.setDuration(3000);
+        animator.setDuration(6000);
         return animator;
     }
 
-    private ValueAnimator setStartAnimator(final FlyObject flyObject){
+    private ValueAnimator setScaleAnimator(FlyObject flyObject){
         ValueAnimator animator =  ValueAnimator.ofObject(
                 new ScaleEvaluator(),
-                new PointF(200, 200)
+                new PointF(10, 10),
+                new PointF(80, 80)
         );
-        animator.setDuration(1500);
 
-        animator.addListener(new Animator.AnimatorListener() {
-            @Override
-            public void onAnimationStart(Animator animator) {
+        animator.setDuration(200);
 
-            }
-
-            @Override
-            public void onAnimationEnd(Animator animator) {
-                flyObject.isFlying = true;
-            }
-
-            @Override
-            public void onAnimationCancel(Animator animator) {
-
-            }
-
-            @Override
-            public void onAnimationRepeat(Animator animator) {
-
-            }
-        });
+        animator.addUpdateListener(new StartListener(flyObject));
         return animator;
     }
 
     private PointF getPointF(int scale) {
         PointF pointF = new PointF();
-        pointF.x = mRandom.nextInt((mWidth - 100));
-        pointF.y = mRandom.nextInt((mHeight - 100)) / scale;
+        pointF.x = mRandom.nextInt((mWidth));
+        pointF.y = mRandom.nextInt((mHeight)) / scale;
         return pointF;
+    }
+
+    private ObjectAnimator setAlphaAnimator(FlyObject flyObject){
+        ObjectAnimator alphaAnimator = ObjectAnimator.ofObject(flyObject, FlyObject.ALPHA_FIELD, new IntEvaluator(), 0);
+        alphaAnimator.setInterpolator(new LinearInterpolator());
+        alphaAnimator.setDuration(500);
+        alphaAnimator.setStartDelay(3000);
+        return alphaAnimator;
     }
 
     public void animateFlyObject(FlyObject flyObject) {
         createAnimation(flyObject);
     }
 
-    public static Bitmap resizeBitmap(Bitmap currentBitmap, PointF newSize){
-        int width = currentBitmap.getWidth();
-        int height = currentBitmap.getHeight();
-        Log.d(TAG, "resizeBitmap: w " + width + "h " + height);
-        Log.d(TAG, "new : w " + newSize.x + "h " + newSize.y);
-//        float scaledW = newSize.x / width;
-//        float scaledH = newSize.y / height;
-//        Log.d(TAG, "scaled: w" + scaledW + "h " + scaledH);
-//        Matrix scaleMatrix = new Matrix();
-        //scaleMatrix.postScale(scaledW, scaledH);
+    public static Bitmap resizeBitmap(Bitmap currentBitmap, PointF newSize, boolean recycle){
+//        Log.d(TAG, "resizeBitmap: w " + width + "h " + height);
+//        Log.i(TAG, "new : w " + newSize.x + "h " + newSize.y);
         Bitmap bitmap = Bitmap.createScaledBitmap(currentBitmap, (int) newSize.x, (int) newSize.y, false);
-//        Bitmap bitmap = Bitmap.createBitmap(currentBitmap, 0, 0, width, height, scaleMatrix, false);
-        // TODO: 07.12.16 clear bitmap to prevent out of memory error
-//        currentBitmap.recycle();
+
+        if (recycle)
+            currentBitmap.recycle();
         return bitmap;
     }
 
@@ -128,23 +108,23 @@ public class AnimationManager {
         @Override
         public void onAnimationUpdate(ValueAnimator animation) {
             PointF pointF = (PointF) animation.getAnimatedValue();
-            mFlyObject.changeState(pointF.x, pointF.y);
-//            target.setAlpha(1 - animation.getAnimatedFraction());
+            pointF.x -= mFlyObject.getLikeSize().x / 2;
+            pointF.y -= mFlyObject.getLikeSize().y;
+            mFlyObject.updatePosition(pointF);
         }
     }
 
+    private class StartListener implements ValueAnimator.AnimatorUpdateListener{
+        private FlyObject mFlyObject;
 
-//    private class AnimEndListener extends AnimatorListenerAdapter {
-//        private View target;
-//
-//        public AnimEndListener(View target) {
-//            this.target = target;
-//        }
-//
-//        @Override
-//        public void onAnimationEnd(Animator animation) {
-//            super.onAnimationEnd(animation);
-//            removeView((target));
-//        }
-//    }
+        public StartListener(FlyObject flyObject){
+            mFlyObject = flyObject;
+        }
+
+        @Override
+        public void onAnimationUpdate(ValueAnimator valueAnimator) {
+            PointF scalePointF = (PointF) valueAnimator.getAnimatedValue();
+            mFlyObject.setLikeSize(scalePointF);
+        }
+    }
 }
