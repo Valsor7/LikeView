@@ -1,4 +1,4 @@
-package com.boost.yaroslav.likeview;
+package com.boost.yaroslav.likeview.animation.evaluators;
 
 import android.animation.TypeEvaluator;
 import android.graphics.PointF;

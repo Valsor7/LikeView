@@ -1,4 +1,4 @@
-package com.boost.yaroslav.likeview;
+package com.boost.yaroslav.likeview.animation.evaluators;
 
 import android.animation.TypeEvaluator;
 import android.graphics.PointF;
@@ -12,8 +12,12 @@ public class ScaleEvaluator implements TypeEvaluator<PointF> {
     private static final String TAG = "ScaleEvaluator";
     @Override
     public PointF evaluate(float fraction, PointF startPointF, PointF endPointF) {
-        endPointF.x = startPointF.x + (endPointF.x * fraction);
-        endPointF.y = startPointF.y + (endPointF.y * fraction);
-        return endPointF;
+        Log.d(TAG, "evaluate: fraction" + fraction);
+        Log.d(TAG, "evaluate: end " + endPointF.toString());
+        if (fraction == 0) return startPointF;
+        PointF pointF = new PointF();
+        pointF.x = endPointF.x * fraction;
+        pointF.y = endPointF.y * fraction;
+        return pointF;
     }
 }

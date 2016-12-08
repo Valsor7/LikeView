@@ -5,11 +5,16 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 
-public class MainActivity extends AppCompatActivity {
+import com.boost.yaroslav.likeview.animation.likes_view.LikesSurfaceView;
 
+import java.util.Random;
+
+public class MainActivity extends AppCompatActivity {
+    int[] images = new int[]{R.drawable.a, R.drawable.b, R.drawable.c};
     private static final String TAG = "MainActivity";
     LikesSurfaceView likesSurfaceView;
     int counter;
+    Random random = new Random();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -20,13 +25,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 Log.d(TAG, "onClick: ");
-                if (++counter % 2 == 0){
-                    likesSurfaceView.onLikeAdded(R.drawable.a);
-                } else if (counter % 3 == 0){
-                    likesSurfaceView.onLikeAdded(R.drawable.b);
-                } else {
-                    likesSurfaceView.onLikeAdded(R.drawable.c);
-                }
+                likesSurfaceView.onLikeAdded(images[random.nextInt(3)]);
             }
         });
 

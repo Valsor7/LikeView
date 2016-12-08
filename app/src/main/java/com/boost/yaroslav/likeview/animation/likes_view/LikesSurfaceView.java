@@ -1,4 +1,4 @@
-package com.boost.yaroslav.likeview;
+package com.boost.yaroslav.likeview.animation.likes_view;
 
 import android.content.Context;
 import android.graphics.Bitmap;
@@ -9,11 +9,16 @@ import android.graphics.Paint;
 import android.graphics.PixelFormat;
 import android.graphics.PointF;
 import android.graphics.PorterDuff;
+import android.os.Handler;
 import android.os.Looper;
+import android.os.Message;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
+
+import com.boost.yaroslav.likeview.animation.AnimationManager;
+import com.boost.yaroslav.likeview.animation.FlyObject;
 
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -27,7 +32,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class LikesSurfaceView extends SurfaceView implements SurfaceHolder.Callback {
     private static final String TAG = "LikesSurfaceView";
-    private static final long DELAY_NEXT_FRAME = 16;
+    private static final long DELAY_NEXT_FRAME = 1000 / 30;
     ConcurrentLinkedQueue<FlyObject> mFlyObjects = new ConcurrentLinkedQueue<>();
     Map<Integer, Bitmap> mLikesBitmapsMap = new LinkedHashMap<>();
     ConcurrentHashMap<Integer, Integer> mUniqueResourcesCounter = new ConcurrentHashMap<>();
@@ -74,8 +79,8 @@ public class LikesSurfaceView extends SurfaceView implements SurfaceHolder.Callb
         mDrawThread.setRunning(false);
         while (retry) {
             try {
-                mDrawThread.getmHandler().removeMessages(1);
-                if (!mDrawThread.getmHandler().hasMessages(1)) {
+                mDrawThread.getmHandler().removeMessages(LikeHandlerThread.MSG_LIKE_PRESSED);
+                if (!mDrawThread.getmHandler().hasMessages(LikeHandlerThread.MSG_LIKE_PRESSED)) {
                     mDrawThread.getmHandler().sendClose();
                 }
                 mDrawThread.join();
@@ -100,7 +105,8 @@ public class LikesSurfaceView extends SurfaceView implements SurfaceHolder.Callb
         } else {
             flyObject = new FlyObject(resId);
             mFlyObjects.add(flyObject);
-            mUniqueResourcesCounter.put(resId, mFlyObjects.size());
+//            mUniqueResourcesCounter.put(resId, mFlyObjects.size());
+            mUniqueResourcesCounter.put(resId, mUniqueResourcesCounter.get(resId) + 1);
         }
         mAnimationManager.animateFlyObject(flyObject);
     }
@@ -108,16 +114,32 @@ public class LikesSurfaceView extends SurfaceView implements SurfaceHolder.Callb
 
     private Bitmap createImageFromResId(int resId) {
         Bitmap bitmap = BitmapFactory.decodeResource(getResources(), resId);
-        return AnimationManager.resizeBitmap(bitmap, new PointF(100, 100), true);
+        // todo check if image the same size and use point
+        Bitmap scaledInitImage = AnimationManager.resizeBitmap(bitmap, new PointF(70, 70), true);
+        return scaledInitImage;
     }
 
     class DrawThread extends Thread {
+        private static final int MSG_INVALIDATE = 0;
         private final SurfaceHolder mSurfaceHolder;
         boolean mRunning;
         private LikeHandlerThread mHandler;
         private long timeNow;
         private long timePrevFrame;
         private long timeDelta;
+        // todo check leaks
+        private Handler mInvalidateHandler  = new Handler() {
+            @Override
+            public void handleMessage(Message msg) {
+                super.handleMessage(msg);
+                switch (msg.what) {
+                    case MSG_INVALIDATE:
+                        draw();
+                        sendEmptyMessageDelayed(MSG_INVALIDATE, 1000/ 30);
+                        break;
+                }
+            }
+        };
 
         public DrawThread(SurfaceHolder surfaceHolder) {
             mSurfaceHolder = surfaceHolder;
@@ -134,6 +156,15 @@ public class LikesSurfaceView extends SurfaceView implements SurfaceHolder.Callb
             Looper.loop();
         }
 
+        void startRedraw()  {
+            mInvalidateHandler.removeMessages(MSG_INVALIDATE);
+            mInvalidateHandler.sendEmptyMessageDelayed(MSG_INVALIDATE, 1000/ 30);
+        }
+        void stopRedraw() {
+            mInvalidateHandler.removeMessages(MSG_INVALIDATE);
+        }
+
+        // todo change to draw one time
         public void draw() {
             Canvas canvas;
             while (mRunning) {
@@ -153,6 +184,7 @@ public class LikesSurfaceView extends SurfaceView implements SurfaceHolder.Callb
                     if (canvas == null)
                         continue;
                     synchronized (mSurfaceHolder) {
+
                         canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.MULTIPLY);
                         Iterator iterator = mFlyObjects.iterator();
 
@@ -178,18 +210,19 @@ public class LikesSurfaceView extends SurfaceView implements SurfaceHolder.Callb
 
         private void drawFlyingLike(final Canvas canvas, final FlyObject flyObject) {
             Bitmap bitmap = mLikesBitmapsMap.get(flyObject.getId());
-            if (!flyObject.isFlying) {
-                bitmap = AnimationManager.resizeBitmap(bitmap, flyObject.getLikeSize(), false);
-            }
+            // todo use matrix to scale and translate and rotate
+            bitmap = AnimationManager.resizeBitmap(bitmap, flyObject.getLikeSize(), false);
+            Log.d(TAG, "drawFlyingLike: " + flyObject.getPosition() + " anim " + flyObject.isAnimating);
             mLikePaint.setAlpha(flyObject.getAlpha());
             canvas.drawBitmap(bitmap, flyObject.getPosition().x, flyObject.getPosition().y, mLikePaint);
         }
 
         private void clearCachedLikes(Iterator iterator, FlyObject flyObject) {
             iterator.remove();
-            int count = mUniqueResourcesCounter.get(flyObject.getId());
-            if (--count == 0) {
-                mLikesBitmapsMap.remove(flyObject.getId());
+            int count = mUniqueResourcesCounter.get(flyObject.getId()) - 1;
+            if (count == 0) {
+                Bitmap bitmap = mLikesBitmapsMap.remove(flyObject.getId());
+                bitmap.recycle();
                 mUniqueResourcesCounter.remove(flyObject.getId());
             } else
                 mUniqueResourcesCounter.put(flyObject.getId(), count);

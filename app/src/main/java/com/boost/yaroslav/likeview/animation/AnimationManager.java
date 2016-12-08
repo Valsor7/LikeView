@@ -1,4 +1,4 @@
-package com.boost.yaroslav.likeview;
+package com.boost.yaroslav.likeview.animation;
 
 import android.animation.AnimatorSet;
 import android.animation.IntEvaluator;
@@ -8,6 +8,9 @@ import android.graphics.Bitmap;
 import android.graphics.PointF;
 import android.util.Log;
 import android.view.animation.LinearInterpolator;
+
+import com.boost.yaroslav.likeview.animation.evaluators.FlyEvaluator;
+import com.boost.yaroslav.likeview.animation.evaluators.ScaleEvaluator;
 
 import java.util.Random;
 
@@ -31,6 +34,10 @@ public class AnimationManager {
         mHeight = height;
     }
 
+    public void animateFlyObject(FlyObject flyObject) {
+        createAnimation(flyObject);
+    }
+
     private void createAnimation(FlyObject flyObject){
         ValueAnimator appearanceAnimator = setScaleAnimator(flyObject);
         ValueAnimator flyAnimator = setFlyAnimator(flyObject);
@@ -51,20 +58,24 @@ public class AnimationManager {
                 new PointF(mRandom.nextInt(mWidth), 0)
         );
         animator.addUpdateListener(new FlyListener(flyObject));
-        animator.setDuration(6000);
+        // todo use constants
+        animator.setDuration(8000);
         return animator;
     }
 
     private ValueAnimator setScaleAnimator(FlyObject flyObject){
         ValueAnimator animator =  ValueAnimator.ofObject(
                 new ScaleEvaluator(),
-                new PointF(10, 10),
-                new PointF(80, 80)
+                new PointF(100, 100),
+                new PointF(
+                        flyObject.getLikeSize().x,
+                        flyObject.getLikeSize().y
+                )
         );
 
         animator.setDuration(200);
 
-        animator.addUpdateListener(new StartListener(flyObject));
+        animator.addUpdateListener(new ScaleListener(flyObject));
         return animator;
     }
 
@@ -78,18 +89,16 @@ public class AnimationManager {
     private ObjectAnimator setAlphaAnimator(FlyObject flyObject){
         ObjectAnimator alphaAnimator = ObjectAnimator.ofObject(flyObject, FlyObject.ALPHA_FIELD, new IntEvaluator(), 0);
         alphaAnimator.setInterpolator(new LinearInterpolator());
-        alphaAnimator.setDuration(500);
-        alphaAnimator.setStartDelay(3000);
+        alphaAnimator.setDuration(600);
+        alphaAnimator.setStartDelay(5000);
         return alphaAnimator;
     }
 
-    public void animateFlyObject(FlyObject flyObject) {
-        createAnimation(flyObject);
-    }
 
     public static Bitmap resizeBitmap(Bitmap currentBitmap, PointF newSize, boolean recycle){
 //        Log.d(TAG, "resizeBitmap: w " + width + "h " + height);
-//        Log.i(TAG, "new : w " + newSize.x + "h " + newSize.y);
+      Log.i(TAG, "new : w " + newSize.x + " h " + newSize.y);
+        //if (newSize.equals(0,0)) return currentBitmap;
         Bitmap bitmap = Bitmap.createScaledBitmap(currentBitmap, (int) newSize.x, (int) newSize.y, false);
 
         if (recycle)
@@ -108,22 +117,24 @@ public class AnimationManager {
         @Override
         public void onAnimationUpdate(ValueAnimator animation) {
             PointF pointF = (PointF) animation.getAnimatedValue();
-            pointF.x -= mFlyObject.getLikeSize().x / 2;
-            pointF.y -= mFlyObject.getLikeSize().y;
+
             mFlyObject.updatePosition(pointF);
+            mFlyObject.isAnimating = true;
         }
     }
 
-    private class StartListener implements ValueAnimator.AnimatorUpdateListener{
+    private class ScaleListener implements ValueAnimator.AnimatorUpdateListener{
         private FlyObject mFlyObject;
 
-        public StartListener(FlyObject flyObject){
+        public ScaleListener(FlyObject flyObject){
             mFlyObject = flyObject;
         }
 
         @Override
         public void onAnimationUpdate(ValueAnimator valueAnimator) {
+
             PointF scalePointF = (PointF) valueAnimator.getAnimatedValue();
+            Log.d("ScaleEvaluator", "onAnimationUpdate: " + scalePointF.toString());
             mFlyObject.setLikeSize(scalePointF);
         }
     }

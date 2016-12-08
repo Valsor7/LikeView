@@ -1,4 +1,4 @@
-package com.boost.yaroslav.likeview;
+package com.boost.yaroslav.likeview.animation.likes_view;
 
 import android.os.Handler;
 import android.os.Message;
@@ -13,7 +13,7 @@ import java.lang.ref.WeakReference;
 public class LikeHandlerThread extends Handler {
 
     private static final String TAG = "LikeHandlerThread";
-    private static final int MSG_LIKE_PRESSED = 1;
+    public static final int MSG_LIKE_PRESSED = 1;
     private static final int MSG_CLOSE = 2;
     private WeakReference<LikesSurfaceView.DrawThread> mWeakThread;
 

@@ -1,4 +1,4 @@
-package com.boost.yaroslav.likeview;
+package com.boost.yaroslav.likeview.animation;
 
 import android.graphics.Matrix;
 import android.graphics.PointF;
@@ -18,28 +18,18 @@ public class FlyObject {
     private Matrix stateMatrix;
     private PointF position;
     private PointF likeSize;
-    boolean isFlying = false;
-
+    public boolean isAnimating;
 
     public FlyObject(int id) {
         this.id = id;
-        stateMatrix = new Matrix();
-        likeSize = new PointF(10,10);
-    }
-
-    public void changeState(float x, float y){
-        aliveTime = y;
-        stateMatrix.reset();
-        stateMatrix.setTranslate(x, y);
+        likeSize = new PointF(70, 70);
     }
 
     public void updatePosition(PointF position){
+        position.x -= likeSize.x / 2;
+        position.y -= likeSize.y;
         aliveTime = position.y;
         this.position = position;
-    }
-
-    Matrix getState(){
-        return stateMatrix;
     }
 
     public int getId() {
