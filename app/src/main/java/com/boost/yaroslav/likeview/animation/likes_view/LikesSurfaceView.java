@@ -16,7 +16,7 @@ import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 
 import com.boost.yaroslav.likeview.animation.AnimationManager;
-import com.boost.yaroslav.likeview.animation.FlyObject;
+import com.boost.yaroslav.likeview.animation.like_objects.FlyObject;
 
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -131,6 +131,7 @@ public class LikesSurfaceView extends SurfaceView implements SurfaceHolder.Callb
 
         void startDrawing() {
             // TODO: 09.12.16  maybe draw with delay is enough
+            //why we need to clear messages queue?
             Log.d(TAG, "startDrawing: ");
             if (mDrawHandler != null) {
                 mDrawHandler.removeMessages(LikeHandlerThread.MSG_INVALIDATE);
@@ -188,10 +189,11 @@ public class LikesSurfaceView extends SurfaceView implements SurfaceHolder.Callb
 
         private void drawFlyingLike(final Canvas canvas, final FlyObject flyObject) {
             Bitmap bitmap = mLikesBitmapsMap.get(flyObject.getId());
-            // todo use matrix to scale and translate and rotate
-            //Log.d(TAG, "drawFlyingLike: " + flyObject.getPosition() + " anim " + flyObject.isAnimating);
-            mLikePaint.setAlpha(flyObject.getAlpha());
-            canvas.drawBitmap(bitmap, flyObject.getPosition().x, flyObject.getPosition().y, mLikePaint);
+            Log.d(TAG, "drawFlyingLike: ");
+            if (flyObject.isAnimating) {
+                mLikePaint.setAlpha(flyObject.getAlpha());
+                canvas.drawBitmap(bitmap, flyObject.getStateMatrix(), mLikePaint);
+            }
         }
 
         private void clearCachedLikes(Iterator iterator, FlyObject flyObject) {

@@ -1,5 +1,6 @@
 package com.boost.yaroslav.likeview.animation;
 
+import android.animation.Animator;
 import android.animation.AnimatorSet;
 import android.animation.IntEvaluator;
 import android.animation.ObjectAnimator;
@@ -12,6 +13,7 @@ import android.view.animation.LinearInterpolator;
 
 import com.boost.yaroslav.likeview.animation.evaluators.FlyEvaluator;
 import com.boost.yaroslav.likeview.animation.evaluators.ScaleEvaluator;
+import com.boost.yaroslav.likeview.animation.like_objects.FlyObject;
 
 import java.util.Random;
 
@@ -32,25 +34,27 @@ public class AnimationManager {
 
     public void setDisplaySize(int width, int height) {
         mWidth = width;
-        mHeight = height;
+        mHeight = height / 2;
     }
 
     public void animateFlyObject(FlyObject flyObject) {
         createAnimation(flyObject);
     }
 
-    private void createAnimation(FlyObject flyObject) {
-        ValueAnimator appearanceAnimator = setScaleAnimator(flyObject);
-        ValueAnimator flyAnimator = setFlyAnimator(flyObject);
-        ObjectAnimator alphaAnimator = setAlphaAnimator(flyObject);
+    private void createAnimation(final FlyObject flyObject) {
+        ValueAnimator appearanceAnimator = getScaleAnimator(flyObject);
+        appearanceAnimator.start();
+        final ValueAnimator flyAnimator = getFlyAnimator(flyObject);
+        ObjectAnimator alphaAnimator = getAlphaAnimator(flyObject);
 
-        AnimatorSet animatorSet = new AnimatorSet();
-        animatorSet.playTogether(flyAnimator, appearanceAnimator);
-        animatorSet.playSequentially(alphaAnimator);
-        animatorSet.start();
+//        AnimatorSet animatorSet = new AnimatorSet();
+//        animatorSet.playSequentially(appearanceAnimator, flyAnimator);
+//        animatorSet.playTogether(flyAnimator, alphaAnimator);
+//        animatorSet.start();
+        flyObject.isAnimating = true;
     }
 
-    private ValueAnimator setFlyAnimator(FlyObject flyObject) {
+    private ValueAnimator getFlyAnimator(FlyObject flyObject) {
         FlyEvaluator evaluator = new FlyEvaluator(getPointF(2), getPointF(1));
 
         ValueAnimator animator = ValueAnimator.ofObject(
@@ -64,18 +68,10 @@ public class AnimationManager {
         return animator;
     }
 
-    private ValueAnimator setScaleAnimator(FlyObject flyObject) {
-        ValueAnimator animator = ValueAnimator.ofObject(
-                new ScaleEvaluator(),
-                new PointF(100, 100),
-                new PointF(
-                        flyObject.getLikeSize().x,
-                        flyObject.getLikeSize().y
-                )
-        );
-
-        animator.setDuration(200);
-
+    private ValueAnimator getScaleAnimator(FlyObject flyObject) {
+        PointF imageSize = new PointF(flyObject.getLikeSize().x, flyObject.getLikeSize().y);
+        ValueAnimator animator = ValueAnimator.ofObject(new ScaleEvaluator(), imageSize);
+        animator.setDuration(1300);
         animator.addUpdateListener(new ScaleListener(flyObject));
         return animator;
     }
@@ -87,7 +83,7 @@ public class AnimationManager {
         return pointF;
     }
 
-    private ObjectAnimator setAlphaAnimator(FlyObject flyObject) {
+    private ObjectAnimator getAlphaAnimator(FlyObject flyObject) {
         ObjectAnimator alphaAnimator = ObjectAnimator.ofObject(flyObject, FlyObject.ALPHA_FIELD, new IntEvaluator(), 0);
         alphaAnimator.setInterpolator(new LinearInterpolator());
         alphaAnimator.setDuration(600);
@@ -119,7 +115,7 @@ public class AnimationManager {
         @Override
         public void onAnimationUpdate(ValueAnimator animation) {
             PointF pointF = (PointF) animation.getAnimatedValue();
-
+            Log.d(TAG, "onAnimationUpdate: position : " + pointF.toString());
             mFlyObject.updatePosition(pointF);
             mFlyObject.isAnimating = true;
         }
@@ -134,10 +130,9 @@ public class AnimationManager {
 
         @Override
         public void onAnimationUpdate(ValueAnimator valueAnimator) {
-
             PointF scalePointF = (PointF) valueAnimator.getAnimatedValue();
-            Log.d("ScaleEvaluator", "onAnimationUpdate: " + scalePointF.toString());
-            mFlyObject.setLikeSize(scalePointF);
+            Log.d(TAG, "onAnimationUpdate: scale " + scalePointF.toString());
+            mFlyObject.setSizeAndTransform(scalePointF);
         }
     }
 }
