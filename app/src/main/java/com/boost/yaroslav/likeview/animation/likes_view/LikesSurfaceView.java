@@ -116,7 +116,7 @@ public class LikesSurfaceView extends SurfaceView implements SurfaceHolder.Callb
         private LikeHandlerThread mDrawHandler;
 
 
-        public DrawThread(SurfaceHolder surfaceHolder) {
+        DrawThread(SurfaceHolder surfaceHolder) {
             mSurfaceHolder = surfaceHolder;
         }
 
@@ -129,7 +129,7 @@ public class LikesSurfaceView extends SurfaceView implements SurfaceHolder.Callb
             Looper.loop();
         }
 
-        public void startDrawing() {
+        void startDrawing() {
             // TODO: 09.12.16  maybe draw with delay is enough
             Log.d(TAG, "startDrawing: ");
             if (mDrawHandler != null) {
@@ -138,20 +138,20 @@ public class LikesSurfaceView extends SurfaceView implements SurfaceHolder.Callb
             }
         }
 
-        public void invalidate() {
+        void invalidate() {
             if (mDrawHandler != null) {
                 mDrawHandler.removeMessages(LikeHandlerThread.MSG_INVALIDATE);
                 mDrawHandler.sendEmptyMessageDelayed(LikeHandlerThread.MSG_INVALIDATE, DELAY_FPS);
             }
         }
 
-        public void close() {
+        void close() {
             Log.d(TAG, "ThreadHandler sendClose: ");
             mDrawHandler.removeMessages(LikeHandlerThread.MSG_INVALIDATE);
             mDrawHandler.sendEmptyMessage(LikeHandlerThread.MSG_CLOSE);
         }
 
-        public void draw() {
+        void draw() {
             if (mFlyObjects.isEmpty()) {
                 Log.w(TAG, "draw: emplty list");
                 return;
@@ -196,13 +196,13 @@ public class LikesSurfaceView extends SurfaceView implements SurfaceHolder.Callb
 
         private void clearCachedLikes(Iterator iterator, FlyObject flyObject) {
             iterator.remove();
-            int count = mUniqueResourcesCounter.get(flyObject.getId()) - 1;
-            if (count == 0) {
+            int decrementCount = mUniqueResourcesCounter.get(flyObject.getId()) - 1;
+            if (decrementCount == 0) {
                 Bitmap bitmap = mLikesBitmapsMap.remove(flyObject.getId());
                 bitmap.recycle();
                 mUniqueResourcesCounter.remove(flyObject.getId());
             } else
-                mUniqueResourcesCounter.put(flyObject.getId(), count);
+                mUniqueResourcesCounter.put(flyObject.getId(), decrementCount);
         }
 
 
