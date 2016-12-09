@@ -11,25 +11,15 @@ import java.lang.ref.WeakReference;
  */
 
 public class LikeHandlerThread extends Handler {
-
+    public static final int MSG_INVALIDATE = 0;
+    public static final int MSG_CLOSE = 3;
     private static final String TAG = "LikeHandlerThread";
-    public static final int MSG_LIKE_PRESSED = 1;
-    private static final int MSG_CLOSE = 2;
+
     private WeakReference<LikesSurfaceView.DrawThread> mWeakThread;
 
     public LikeHandlerThread(LikesSurfaceView.DrawThread thread) {
         this.mWeakThread = new WeakReference<>(thread);
     }
-
-    public void LikeIsPressed() {
-        sendMessage(obtainMessage(MSG_LIKE_PRESSED));
-    }
-
-    public void sendClose() {
-        Log.d(TAG, "GLThreadHandler sendClose: ");
-        sendMessage(obtainMessage(MSG_CLOSE));
-    }
-
 
     @Override
     public void handleMessage(Message msg) {
@@ -39,9 +29,8 @@ public class LikeHandlerThread extends Handler {
             Log.w(TAG, "ThreadHandler.handleMessage: weak ref is null");
             return;
         }
-        drawThread.setRunning(true);
         switch (what) {
-            case MSG_LIKE_PRESSED:
+            case MSG_INVALIDATE:
                 drawThread.draw();
                 break;
             case MSG_CLOSE:

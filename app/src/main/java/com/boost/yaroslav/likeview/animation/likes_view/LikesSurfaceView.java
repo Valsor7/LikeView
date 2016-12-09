@@ -7,11 +7,9 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.PixelFormat;
-import android.graphics.PointF;
+import android.graphics.Point;
 import android.graphics.PorterDuff;
-import android.os.Handler;
 import android.os.Looper;
-import android.os.Message;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.SurfaceHolder;
@@ -32,7 +30,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class LikesSurfaceView extends SurfaceView implements SurfaceHolder.Callback {
     private static final String TAG = "LikesSurfaceView";
-    private static final long DELAY_NEXT_FRAME = 1000 / 30;
+    private static final long DELAY_FPS = 1000 / 30;
     ConcurrentLinkedQueue<FlyObject> mFlyObjects = new ConcurrentLinkedQueue<>();
     Map<Integer, Bitmap> mLikesBitmapsMap = new LinkedHashMap<>();
     ConcurrentHashMap<Integer, Integer> mUniqueResourcesCounter = new ConcurrentHashMap<>();
@@ -46,7 +44,7 @@ public class LikesSurfaceView extends SurfaceView implements SurfaceHolder.Callb
         init();
     }
 
-    private void init(){
+    private void init() {
         mAnimationManager = new AnimationManager();
         setZOrderOnTop(true);
         getHolder().setFormat(PixelFormat.TRANSPARENT);
@@ -69,22 +67,18 @@ public class LikesSurfaceView extends SurfaceView implements SurfaceHolder.Callb
 
     public void onLikeAdded(int resId) {
         addImage(resId);
-        mDrawThread.getmHandler().LikeIsPressed();
+        mDrawThread.startDrawing();
     }
 
     @Override
     public void surfaceDestroyed(SurfaceHolder surfaceHolder) {
         Log.d(TAG, "surfaceDestroying...: ");
-        boolean retry = true;
-        mDrawThread.setRunning(false);
-        while (retry) {
+        boolean isAlive = true;
+        while (isAlive) {
             try {
-                mDrawThread.getmHandler().removeMessages(LikeHandlerThread.MSG_LIKE_PRESSED);
-                if (!mDrawThread.getmHandler().hasMessages(LikeHandlerThread.MSG_LIKE_PRESSED)) {
-                    mDrawThread.getmHandler().sendClose();
-                }
+                mDrawThread.close();
                 mDrawThread.join();
-                retry = false;
+                isAlive = false;
             } catch (InterruptedException e) {
                 Log.d(TAG, "surfaceDestroyed: " + e.getMessage());
             }
@@ -105,7 +99,6 @@ public class LikesSurfaceView extends SurfaceView implements SurfaceHolder.Callb
         } else {
             flyObject = new FlyObject(resId);
             mFlyObjects.add(flyObject);
-//            mUniqueResourcesCounter.put(resId, mFlyObjects.size());
             mUniqueResourcesCounter.put(resId, mUniqueResourcesCounter.get(resId) + 1);
         }
         mAnimationManager.animateFlyObject(flyObject);
@@ -114,105 +107,89 @@ public class LikesSurfaceView extends SurfaceView implements SurfaceHolder.Callb
 
     private Bitmap createImageFromResId(int resId) {
         Bitmap bitmap = BitmapFactory.decodeResource(getResources(), resId);
-        // todo check if image the same size and use point
-        Bitmap scaledInitImage = AnimationManager.resizeBitmap(bitmap, new PointF(70, 70), true);
-        return scaledInitImage;
+        return AnimationManager.resizeBitmap(bitmap, new Point(70, 70));
     }
 
     class DrawThread extends Thread {
-        private static final int MSG_INVALIDATE = 0;
+
         private final SurfaceHolder mSurfaceHolder;
-        boolean mRunning;
-        private LikeHandlerThread mHandler;
-        private long timeNow;
-        private long timePrevFrame;
-        private long timeDelta;
-        // todo check leaks
-        private Handler mInvalidateHandler  = new Handler() {
-            @Override
-            public void handleMessage(Message msg) {
-                super.handleMessage(msg);
-                switch (msg.what) {
-                    case MSG_INVALIDATE:
-                        draw();
-                        sendEmptyMessageDelayed(MSG_INVALIDATE, 1000/ 30);
-                        break;
-                }
-            }
-        };
+        private LikeHandlerThread mDrawHandler;
+
 
         public DrawThread(SurfaceHolder surfaceHolder) {
             mSurfaceHolder = surfaceHolder;
         }
 
-        public void setRunning(boolean isRunning) {
-            mRunning = isRunning;
-        }
-
         @Override
         public void run() {
+            Log.d(TAG, "run: ");
             Looper.prepare();
-            mHandler = new LikeHandlerThread(this);
+            mDrawHandler = new LikeHandlerThread(this);
+            startDrawing();
             Looper.loop();
         }
 
-        void startRedraw()  {
-            mInvalidateHandler.removeMessages(MSG_INVALIDATE);
-            mInvalidateHandler.sendEmptyMessageDelayed(MSG_INVALIDATE, 1000/ 30);
-        }
-        void stopRedraw() {
-            mInvalidateHandler.removeMessages(MSG_INVALIDATE);
+        public void startDrawing() {
+            // TODO: 09.12.16  maybe draw with delay is enough
+            Log.d(TAG, "startDrawing: ");
+            if (mDrawHandler != null) {
+                mDrawHandler.removeMessages(LikeHandlerThread.MSG_INVALIDATE);
+                mDrawHandler.sendEmptyMessage(LikeHandlerThread.MSG_INVALIDATE);
+            }
         }
 
-        // todo change to draw one time
+        public void invalidate() {
+            if (mDrawHandler != null) {
+                mDrawHandler.removeMessages(LikeHandlerThread.MSG_INVALIDATE);
+                mDrawHandler.sendEmptyMessageDelayed(LikeHandlerThread.MSG_INVALIDATE, DELAY_FPS);
+            }
+        }
+
+        public void close() {
+            Log.d(TAG, "ThreadHandler sendClose: ");
+            mDrawHandler.removeMessages(LikeHandlerThread.MSG_INVALIDATE);
+            mDrawHandler.sendEmptyMessage(LikeHandlerThread.MSG_CLOSE);
+        }
+
         public void draw() {
-            Canvas canvas;
-            while (mRunning) {
-                canvas = null;
-                timeNow = System.currentTimeMillis();
-                timeDelta = timeNow - timePrevFrame;
-                if (timeDelta < DELAY_NEXT_FRAME){
-                    try {
-                        Thread.sleep(DELAY_NEXT_FRAME - timeDelta);
-                    } catch (InterruptedException e){
-                        Log.e(TAG, e.getMessage());
-                    }
-                }
-                timePrevFrame = System.currentTimeMillis();
-                try {
-                    canvas = mSurfaceHolder.lockCanvas(null);
-                    if (canvas == null)
-                        continue;
-                    synchronized (mSurfaceHolder) {
+            if (mFlyObjects.isEmpty()) {
+                Log.w(TAG, "draw: emplty list");
+                return;
+            }
+            Canvas canvas = null;
 
-                        canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.MULTIPLY);
-                        Iterator iterator = mFlyObjects.iterator();
+            try {
+                canvas = mSurfaceHolder.lockCanvas(null);
+                if (canvas == null) return;
 
-                        while (iterator.hasNext()) {
-                            FlyObject flyObject = (FlyObject) iterator.next();
+                synchronized (mSurfaceHolder) {
+                    canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.MULTIPLY);
 
-                            if (flyObject.isAlive()) {
-                                drawFlyingLike(canvas, flyObject);
-                            } else {
-                                clearCachedLikes(iterator, flyObject);
-                            }
+                    Iterator iterator = mFlyObjects.iterator();
+                    while (iterator.hasNext()) {
+                        FlyObject flyObject = (FlyObject) iterator.next();
+
+                        if (flyObject.isAlive()) {
+                            drawFlyingLike(canvas, flyObject);
+                        } else {
+                            clearCachedLikes(iterator, flyObject);
                         }
                     }
-                } finally {
-                    if (canvas != null) {
-                        mSurfaceHolder.unlockCanvasAndPost(canvas);
-                        if (mFlyObjects.isEmpty())
-                            mRunning = false;
-                    }
+                }
+            } finally {
+                if (canvas != null) {
+                    mSurfaceHolder.unlockCanvasAndPost(canvas);
+                    if (!mFlyObjects.isEmpty())
+                        invalidate();
                 }
             }
+
         }
 
         private void drawFlyingLike(final Canvas canvas, final FlyObject flyObject) {
             Bitmap bitmap = mLikesBitmapsMap.get(flyObject.getId());
             // todo use matrix to scale and translate and rotate
-            bitmap = AnimationManager.resizeBitmap(bitmap, flyObject.getLikeSize(), false);
-            Log.d(TAG, "drawFlyingLike: " + flyObject.getPosition() + " anim " + flyObject.isAnimating);
+            //Log.d(TAG, "drawFlyingLike: " + flyObject.getPosition() + " anim " + flyObject.isAnimating);
             mLikePaint.setAlpha(flyObject.getAlpha());
             canvas.drawBitmap(bitmap, flyObject.getPosition().x, flyObject.getPosition().y, mLikePaint);
         }
@@ -228,13 +205,10 @@ public class LikesSurfaceView extends SurfaceView implements SurfaceHolder.Callb
                 mUniqueResourcesCounter.put(flyObject.getId(), count);
         }
 
-        public void quit() {
+
+        void quit() {
             Log.d(TAG, "quit");
             Looper.myLooper().quitSafely();
-        }
-
-        public LikeHandlerThread getmHandler() {
-            return mHandler;
         }
     }
 }

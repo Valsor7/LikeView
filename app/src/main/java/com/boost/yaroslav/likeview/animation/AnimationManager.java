@@ -5,6 +5,7 @@ import android.animation.IntEvaluator;
 import android.animation.ObjectAnimator;
 import android.animation.ValueAnimator;
 import android.graphics.Bitmap;
+import android.graphics.Point;
 import android.graphics.PointF;
 import android.util.Log;
 import android.view.animation.LinearInterpolator;
@@ -29,7 +30,7 @@ public class AnimationManager {
         mRandom = new Random();
     }
 
-    public void setDisplaySize(int width, int height){
+    public void setDisplaySize(int width, int height) {
         mWidth = width;
         mHeight = height;
     }
@@ -38,7 +39,7 @@ public class AnimationManager {
         createAnimation(flyObject);
     }
 
-    private void createAnimation(FlyObject flyObject){
+    private void createAnimation(FlyObject flyObject) {
         ValueAnimator appearanceAnimator = setScaleAnimator(flyObject);
         ValueAnimator flyAnimator = setFlyAnimator(flyObject);
         ObjectAnimator alphaAnimator = setAlphaAnimator(flyObject);
@@ -49,7 +50,7 @@ public class AnimationManager {
         animatorSet.start();
     }
 
-    private ValueAnimator setFlyAnimator(FlyObject flyObject){
+    private ValueAnimator setFlyAnimator(FlyObject flyObject) {
         FlyEvaluator evaluator = new FlyEvaluator(getPointF(2), getPointF(1));
 
         ValueAnimator animator = ValueAnimator.ofObject(
@@ -63,8 +64,8 @@ public class AnimationManager {
         return animator;
     }
 
-    private ValueAnimator setScaleAnimator(FlyObject flyObject){
-        ValueAnimator animator =  ValueAnimator.ofObject(
+    private ValueAnimator setScaleAnimator(FlyObject flyObject) {
+        ValueAnimator animator = ValueAnimator.ofObject(
                 new ScaleEvaluator(),
                 new PointF(100, 100),
                 new PointF(
@@ -86,7 +87,7 @@ public class AnimationManager {
         return pointF;
     }
 
-    private ObjectAnimator setAlphaAnimator(FlyObject flyObject){
+    private ObjectAnimator setAlphaAnimator(FlyObject flyObject) {
         ObjectAnimator alphaAnimator = ObjectAnimator.ofObject(flyObject, FlyObject.ALPHA_FIELD, new IntEvaluator(), 0);
         alphaAnimator.setInterpolator(new LinearInterpolator());
         alphaAnimator.setDuration(600);
@@ -95,14 +96,15 @@ public class AnimationManager {
     }
 
 
-    public static Bitmap resizeBitmap(Bitmap currentBitmap, PointF newSize, boolean recycle){
-//        Log.d(TAG, "resizeBitmap: w " + width + "h " + height);
-      Log.i(TAG, "new : w " + newSize.x + " h " + newSize.y);
-        //if (newSize.equals(0,0)) return currentBitmap;
-        Bitmap bitmap = Bitmap.createScaledBitmap(currentBitmap, (int) newSize.x, (int) newSize.y, false);
+    public static Bitmap resizeBitmap(Bitmap currentBitmap, Point newSize) {
+        Log.d(TAG, "resizeBitmap: w " + currentBitmap.getWidth() + "h " + currentBitmap.getHeight());
+        Log.i(TAG, "new : w " + newSize.x + " h " + newSize.y);
 
-        if (recycle)
-            currentBitmap.recycle();
+        if (newSize.equals(currentBitmap.getWidth(), currentBitmap.getHeight()))
+            return currentBitmap;
+
+        Bitmap bitmap = Bitmap.createScaledBitmap(currentBitmap, newSize.x, newSize.y, false);
+        currentBitmap.recycle();
         return bitmap;
     }
 
@@ -110,7 +112,7 @@ public class AnimationManager {
 
         FlyObject mFlyObject;
 
-        public FlyListener(FlyObject flyObject){
+        public FlyListener(FlyObject flyObject) {
             mFlyObject = flyObject;
         }
 
@@ -123,10 +125,10 @@ public class AnimationManager {
         }
     }
 
-    private class ScaleListener implements ValueAnimator.AnimatorUpdateListener{
+    private class ScaleListener implements ValueAnimator.AnimatorUpdateListener {
         private FlyObject mFlyObject;
 
-        public ScaleListener(FlyObject flyObject){
+        public ScaleListener(FlyObject flyObject) {
             mFlyObject = flyObject;
         }
 
