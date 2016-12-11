@@ -67,7 +67,7 @@ public class LikesSurfaceView extends SurfaceView implements SurfaceHolder.Callb
 
     public void onLikeAdded(int resId) {
         addImage(resId);
-        mDrawThread.startDrawing();
+        mDrawThread.invalidate();
     }
 
     @Override
@@ -125,18 +125,8 @@ public class LikesSurfaceView extends SurfaceView implements SurfaceHolder.Callb
             Log.d(TAG, "run: ");
             Looper.prepare();
             mDrawHandler = new LikeHandlerThread(this);
-            startDrawing();
+            invalidate();
             Looper.loop();
-        }
-
-        void startDrawing() {
-            // TODO: 09.12.16  maybe draw with delay is enough
-            //why we need to clear messages queue?
-            Log.d(TAG, "startDrawing: ");
-            if (mDrawHandler != null) {
-                mDrawHandler.removeMessages(LikeHandlerThread.MSG_INVALIDATE);
-                mDrawHandler.sendEmptyMessage(LikeHandlerThread.MSG_INVALIDATE);
-            }
         }
 
         void invalidate() {
@@ -169,11 +159,10 @@ public class LikesSurfaceView extends SurfaceView implements SurfaceHolder.Callb
                     Iterator iterator = mFlyObjects.iterator();
                     while (iterator.hasNext()) {
                         FlyObject flyObject = (FlyObject) iterator.next();
-
-                        if (flyObject.isAlive()) {
+                        if (flyObject.isAnimating) {
                             drawFlyingLike(canvas, flyObject);
                         } else {
-                            clearCachedLikes(iterator, flyObject);
+                            clearCachedLike(iterator, flyObject);
                         }
                     }
                 }
@@ -188,15 +177,14 @@ public class LikesSurfaceView extends SurfaceView implements SurfaceHolder.Callb
         }
 
         private void drawFlyingLike(final Canvas canvas, final FlyObject flyObject) {
-            Bitmap bitmap = mLikesBitmapsMap.get(flyObject.getId());
             Log.d(TAG, "drawFlyingLike: ");
-            if (flyObject.isAnimating) {
-                mLikePaint.setAlpha(flyObject.getAlpha());
-                canvas.drawBitmap(bitmap, flyObject.getStateMatrix(), mLikePaint);
-            }
+            Bitmap bitmap = mLikesBitmapsMap.get(flyObject.getId());
+            mLikePaint.setAlpha(flyObject.getAlpha());
+            canvas.drawBitmap(bitmap, flyObject.getStateMatrix(), mLikePaint);
         }
 
-        private void clearCachedLikes(Iterator iterator, FlyObject flyObject) {
+        private void clearCachedLike(Iterator iterator, FlyObject flyObject) {
+            Log.d(TAG, "clearCachedLike: ");
             iterator.remove();
             int decrementCount = mUniqueResourcesCounter.get(flyObject.getId()) - 1;
             if (decrementCount == 0) {

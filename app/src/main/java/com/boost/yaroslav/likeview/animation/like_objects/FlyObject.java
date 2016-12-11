@@ -11,13 +11,12 @@ import android.util.Log;
 public class FlyObject {
     private static final String TAG = "FlyObject";
     public static final String ALPHA_FIELD = "alpha";
-    public final float timeToDeath = 0;
     private int id;
-    private float aliveTime;
     private int alpha = 200;
     private Matrix stateMatrix;
     private PointF likeSize;
-    public boolean isAnimating = false;
+    public boolean isScaling;
+    public boolean isAnimating;
 
     public FlyObject(int id) {
         this.id = id;
@@ -26,19 +25,19 @@ public class FlyObject {
     }
 
     public void updatePosition(PointF position) {
-        aliveTime = position.y;
-        Log.d(TAG, "updatePosition: ");
-        stateMatrix.setTranslate(position.x, position.y);
+        if (isScaling) {
+            stateMatrix.postTranslate(position.x, position.y);
+        } else {
+            stateMatrix.setTranslate(position.x - likeSize.x / 2, position.y - likeSize.y);
+        }
     }
 
     public void setSizeAndTransform(PointF size) {
-        //flyObject.updatePosition(new PointF(mWidth / 2, mHeight - BOTTOM_OFFSET));
-        PointF centerPoints = new PointF();
-        centerPoints.x = size.x * likeSize.x;
-        centerPoints.y = size.y * likeSize.y;
-        Log.d("MY", "center: " + centerPoints.toString());
-        Log.d("MY", "setSizeAndTransform: " + size.toString());
-        stateMatrix.setScale(size.x, size.y, centerPoints.x / 2, centerPoints.y / 2);
+        PointF shiftPoints = new PointF();
+        shiftPoints.x = (size.x * likeSize.x) / 2;
+        shiftPoints.y = (size.y * likeSize.y);
+        stateMatrix.setScale(size.x, size.y);
+        stateMatrix.postTranslate(-shiftPoints.x, -shiftPoints.y);
     }
 
     public void setAlpha(int alpha) {
@@ -47,10 +46,6 @@ public class FlyObject {
 
     public int getId() {
         return id;
-    }
-
-    public boolean isAlive() {
-        return aliveTime > timeToDeath;
     }
 
     public Matrix getStateMatrix() {

@@ -10,10 +10,13 @@ import com.boost.yaroslav.likeview.animation.likes_view.LikesSurfaceView;
 import java.util.Random;
 
 public class MainActivity extends AppCompatActivity {
-    int[] images = new int[]{R.drawable.a, R.drawable.b, R.drawable.c};
+    int[] images = new int[]{
+            R.drawable.a,
+            R.drawable.b,
+            R.drawable.c
+    };
     private static final String TAG = "MainActivity";
     LikesSurfaceView likesSurfaceView;
-    int counter;
     Random random = new Random();
 
     @Override
