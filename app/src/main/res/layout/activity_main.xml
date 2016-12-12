@@ -14,7 +14,7 @@
 
     <com.boost.yaroslav.likeview.animation.likes_view.LikesSurfaceView
         android:id="@+id/sv_likes"
-        android:layout_width="match_parent"
+        android:layout_width="150dp"
         android:layout_height="match_parent"
         android:layout_alignParentEnd="true"/>
 </RelativeLayout>

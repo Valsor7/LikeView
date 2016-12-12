@@ -30,7 +30,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class LikesSurfaceView extends SurfaceView implements SurfaceHolder.Callback {
     private static final String TAG = "LikesSurfaceView";
-    private static final long DELAY_FPS = 1000 / 30;
+    private static final long DELAY_FPS = 1000 / 60;
     ConcurrentLinkedQueue<FlyObject> mFlyObjects = new ConcurrentLinkedQueue<>();
     Map<Integer, Bitmap> mLikesBitmapsMap = new LinkedHashMap<>();
     ConcurrentHashMap<Integer, Integer> mUniqueResourcesCounter = new ConcurrentHashMap<>();

@@ -25,19 +25,17 @@ public class FlyObject {
     }
 
     public void updatePosition(PointF position) {
+        float posX = position.x - likeSize.x / 2;
+        float posY = position.y - likeSize.y;
         if (isScaling) {
-            stateMatrix.postTranslate(position.x, position.y);
+            stateMatrix.postTranslate(posX, posY);
         } else {
-            stateMatrix.setTranslate(position.x - likeSize.x / 2, position.y - likeSize.y);
+            stateMatrix.setTranslate(posX, posY);
         }
     }
 
     public void setSizeAndTransform(PointF size) {
-        PointF shiftPoints = new PointF();
-        shiftPoints.x = (size.x * likeSize.x) / 2;
-        shiftPoints.y = (size.y * likeSize.y);
-        stateMatrix.setScale(size.x, size.y);
-        stateMatrix.postTranslate(-shiftPoints.x, -shiftPoints.y);
+        stateMatrix.setScale(size.x, size.y, likeSize.x / 2, likeSize.y);
     }
 
     public void setAlpha(int alpha) {
