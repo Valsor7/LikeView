@@ -4,10 +4,10 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
-import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.PixelFormat;
 import android.graphics.Point;
+import android.graphics.PointF;
 import android.graphics.PorterDuff;
 import android.os.Looper;
 import android.util.AttributeSet;
@@ -88,16 +88,20 @@ public class LikesSurfaceView extends SurfaceView implements SurfaceHolder.Callb
 
     public void addImage(int resId) {
         FlyObject flyObject = null;
+        Point imageSize = new Point(dpToPx(50), dpToPx(50));
         if (!mLikesBitmapsMap.containsKey(resId)) {
-            Bitmap flyImage = createImageFromResId(resId);
+            Bitmap flyImage = createImageFromResId(resId, imageSize);
             if (flyImage != null) {
                 flyObject = new FlyObject(resId);
+                flyObject.setLikeSize(imageSize);
                 mFlyObjects.add(flyObject);
                 mLikesBitmapsMap.put(resId, flyImage);
                 mUniqueResourcesCounter.put(resId, 1);
             }
         } else {
+            Log.d(TAG, "addImage: image already exist" );
             flyObject = new FlyObject(resId);
+            flyObject.setLikeSize(imageSize);
             mFlyObjects.add(flyObject);
             mUniqueResourcesCounter.put(resId, mUniqueResourcesCounter.get(resId) + 1);
         }
@@ -105,15 +109,24 @@ public class LikesSurfaceView extends SurfaceView implements SurfaceHolder.Callb
     }
 
 
-    private Bitmap createImageFromResId(int resId) {
+    private Bitmap createImageFromResId(int resId, Point newSize) {
         Bitmap bitmap = BitmapFactory.decodeResource(getResources(), resId);
-        return AnimationManager.resizeBitmap(bitmap, new Point(70, 70));
+        if (newSize.equals(bitmap.getWidth(), bitmap.getHeight()))
+            return bitmap;
+
+        Bitmap newBitmap = Bitmap.createScaledBitmap(bitmap, newSize.x, newSize.y, false);
+        bitmap.recycle();
+        return newBitmap;
+    }
+
+    private int dpToPx(int size){
+        return (int) (size * getResources().getDisplayMetrics().density);
     }
 
     class DrawThread extends Thread {
 
         private final SurfaceHolder mSurfaceHolder;
-        private LikeHandlerThread mDrawHandler;
+        private LikeActionHandler mDrawHandler;
 
 
         DrawThread(SurfaceHolder surfaceHolder) {
@@ -124,25 +137,26 @@ public class LikesSurfaceView extends SurfaceView implements SurfaceHolder.Callb
         public void run() {
             Log.d(TAG, "run: ");
             Looper.prepare();
-            mDrawHandler = new LikeHandlerThread(this);
+            mDrawHandler = new LikeActionHandler(this);
             invalidate();
             Looper.loop();
         }
 
         void invalidate() {
             if (mDrawHandler != null) {
-                mDrawHandler.removeMessages(LikeHandlerThread.MSG_INVALIDATE);
-                mDrawHandler.sendEmptyMessageDelayed(LikeHandlerThread.MSG_INVALIDATE, DELAY_FPS);
+                mDrawHandler.removeMessages(LikeActionHandler.MSG_INVALIDATE);
+                mDrawHandler.sendEmptyMessageDelayed(LikeActionHandler.MSG_INVALIDATE, DELAY_FPS);
             }
         }
 
         void close() {
             Log.d(TAG, "ThreadHandler sendClose: ");
-            mDrawHandler.removeMessages(LikeHandlerThread.MSG_INVALIDATE);
-            mDrawHandler.sendEmptyMessage(LikeHandlerThread.MSG_CLOSE);
+            mDrawHandler.removeMessages(LikeActionHandler.MSG_INVALIDATE);
+            mDrawHandler.sendEmptyMessage(LikeActionHandler.MSG_CLOSE);
         }
 
         void draw() {
+
             if (mFlyObjects.isEmpty()) {
                 Log.w(TAG, "draw: emplty list");
                 return;
@@ -150,12 +164,12 @@ public class LikesSurfaceView extends SurfaceView implements SurfaceHolder.Callb
             Canvas canvas = null;
 
             try {
-                canvas = mSurfaceHolder.lockCanvas(null);
+                long startTime = System.currentTimeMillis();
+                canvas = mSurfaceHolder.lockCanvas();
                 if (canvas == null) return;
-
-                synchronized (mSurfaceHolder) {
-                    canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.MULTIPLY);
-
+                    canvas.drawColor(0, PorterDuff.Mode.CLEAR);
+                long endTime = System.currentTimeMillis();
+                Log.d(TAG, "draw: take " + (endTime - startTime) + " ms");
                     Iterator iterator = mFlyObjects.iterator();
                     while (iterator.hasNext()) {
                         FlyObject flyObject = (FlyObject) iterator.next();
@@ -165,10 +179,12 @@ public class LikesSurfaceView extends SurfaceView implements SurfaceHolder.Callb
                             clearCachedLike(iterator, flyObject);
                         }
                     }
-                }
             } finally {
                 if (canvas != null) {
+                    long startTime = System.currentTimeMillis();
                     mSurfaceHolder.unlockCanvasAndPost(canvas);
+                    long endTime = System.currentTimeMillis();
+                    Log.d(TAG, "unlock take" + (endTime - startTime) + " ms");
                     if (!mFlyObjects.isEmpty())
                         invalidate();
                 }
@@ -177,7 +193,7 @@ public class LikesSurfaceView extends SurfaceView implements SurfaceHolder.Callb
         }
 
         private void drawFlyingLike(final Canvas canvas, final FlyObject flyObject) {
-            Log.d(TAG, "drawFlyingLike: ");
+            //Log.d(TAG, "drawFlyingLike: start");
             Bitmap bitmap = mLikesBitmapsMap.get(flyObject.getId());
             mLikePaint.setAlpha(flyObject.getAlpha());
             canvas.drawBitmap(bitmap, flyObject.getStateMatrix(), mLikePaint);

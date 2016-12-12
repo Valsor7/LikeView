@@ -1,6 +1,7 @@
 package com.boost.yaroslav.likeview.animation.like_objects;
 
 import android.graphics.Matrix;
+import android.graphics.Point;
 import android.graphics.PointF;
 import android.util.Log;
 
@@ -40,6 +41,11 @@ public class FlyObject {
 
     public void setAlpha(int alpha) {
         this.alpha = alpha;
+    }
+
+    public void setLikeSize(Point size){
+        likeSize.x = size.x;
+        likeSize.y = size.y;
     }
 
     public int getId() {

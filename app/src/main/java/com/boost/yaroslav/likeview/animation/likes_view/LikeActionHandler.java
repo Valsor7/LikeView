@@ -10,14 +10,14 @@ import java.lang.ref.WeakReference;
  * Created by yaroslav on 06.12.16.
  */
 
-class LikeHandlerThread extends Handler {
+class LikeActionHandler extends Handler {
     static final int MSG_INVALIDATE = 0;
     static final int MSG_CLOSE = 3;
-    private static final String TAG = "LikeHandlerThread";
+    private static final String TAG = "LikeActionHandler";
 
     private WeakReference<LikesSurfaceView.DrawThread> mWeakThread;
 
-    LikeHandlerThread(LikesSurfaceView.DrawThread thread) {
+    LikeActionHandler(LikesSurfaceView.DrawThread thread) {
         this.mWeakThread = new WeakReference<>(thread);
     }
 

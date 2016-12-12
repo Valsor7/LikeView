@@ -113,19 +113,6 @@ public class AnimationManager {
         return alphaAnimator;
     }
 
-
-    public static Bitmap resizeBitmap(Bitmap currentBitmap, Point newSize) {
-        Log.d(TAG, "resizeBitmap: w " + currentBitmap.getWidth() + "h " + currentBitmap.getHeight());
-        Log.i(TAG, "new : w " + newSize.x + " h " + newSize.y);
-
-        if (newSize.equals(currentBitmap.getWidth(), currentBitmap.getHeight()))
-            return currentBitmap;
-
-        Bitmap bitmap = Bitmap.createScaledBitmap(currentBitmap, newSize.x, newSize.y, false);
-        currentBitmap.recycle();
-        return bitmap;
-    }
-
     private class ScaleAnimationStateListener implements Animator.AnimatorListener{
         FlyObject mFlyObject;
         ScaleAnimationStateListener(FlyObject flyObject){
